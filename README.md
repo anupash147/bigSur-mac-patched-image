@@ -1,0 +1,1 @@
+# bigSur-mac-patched-image
