@@ -6,7 +6,7 @@ on:
       macos_version:
         description: 'macOS version to build'
         required: true
-        default: '11.7.10'  # Big Sur latest patch
+        default: '11.7.10'
       image_format:
         description: 'ISO or DMG'
         required: true
@@ -24,22 +24,22 @@ jobs:
       run: |
         brew install wget
 
-    - name: Download macOS Installer
+    - name: Fetch macOS installer
       run: |
-        echo "Downloading macOS ${{ github.event.inputs.macos_version }}"
-        wget -O macOS_Installer.dmg "https://swcdn.apple.com/content/downloads/00/35/091-73901-A_RandomURL/macOS_BigSur_11_7_10.dmg"
+        echo "Fetching macOS ${{ github.event.inputs.macos_version }}"
+        softwareupdate --fetch-full-installer --full-installer-version ${{ github.event.inputs.macos_version }}
 
-    - name: Verify image
+    - name: Convert to DMG/ISO
       run: |
-        echo "Verifying DMG hash (optional)"
-        shasum -a 256 macOS_Installer.dmg
-
-    - name: Build bootable image
-      run: |
+        INSTALLER_APP="/Applications/Install macOS Big Sur.app"
+        if [ ! -d "$INSTALLER_APP" ]; then
+          echo "Installer app not found!"
+          exit 1
+        fi
         if [ "${{ github.event.inputs.image_format }}" = "iso" ]; then
-          hdiutil convert macOS_Installer.dmg -format UDTO -o macOS_BigSur.iso
+          hdiutil convert "$INSTALLER_APP/Contents/SharedSupport/InstallESD.dmg" -format UDTO -o macOS_BigSur.iso
         else
-          echo "DMG format selected, no conversion needed"
+          cp "$INSTALLER_APP/Contents/SharedSupport/InstallESD.dmg" macOS_Installer.dmg
         fi
 
     - name: Upload artifact
@@ -49,4 +49,3 @@ jobs:
         path: |
           macOS_Installer.dmg
           macOS_BigSur.iso
-
